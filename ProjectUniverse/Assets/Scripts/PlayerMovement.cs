@@ -14,9 +14,13 @@ public class PlayerMovement : MonoBehaviour
     public InputActionReference moveAction;
     public InputActionReference jumpAction;
 
-    public float jumpForce;
+    [SerializeField] public float jumpForce;
 
     [SerializeField] private Camera cam;
+
+    [SerializeField] private bool isGrounded;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private float groundCheckDistance = 0.1f;
 
     private void Start()
     {
@@ -29,6 +33,8 @@ public class PlayerMovement : MonoBehaviour
     
     private void Update()
     {
+        CheckGrounded();
+        
         Vector2 input = moveAction.action.ReadValue<Vector2>();
         
         
@@ -37,12 +43,12 @@ public class PlayerMovement : MonoBehaviour
         
         cameraForward.y = 0;
         cameraForward.Normalize();
+        cameraRight.y = 0;
+        cameraRight.Normalize();
     
 
         _moveDir = (cameraForward * input.y + cameraRight * input.x).normalized;
         
-        rb.linearVelocity = _moveDir * moveSpeed;
-        rb.angularVelocity = Vector3.up * jumpForce;
     }
 
     private void Jump(InputAction.CallbackContext context)
@@ -50,10 +56,21 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(Vector3.up * jumpForce);
         
     }
+    private void FixedUpdate()
+    {
+        // apply horizontal movement without affecting vertical velocity
+        Vector3 horizontalVelocity = _moveDir * moveSpeed;
+        Vector3 verticalVelocity = new Vector3(0, rb.linearVelocity.y, 0); 
+        rb.linearVelocity = horizontalVelocity + verticalVelocity;
+    }
 
     private void OnEnable()
     {
         jumpAction.action.performed += Jump;
+    }
+    private void CheckGrounded()
+    {
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
     }
 
     private void OnDisable()
